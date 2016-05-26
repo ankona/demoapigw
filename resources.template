@@ -1,0 +1,165 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Metadata": {
+    "AWS::CloudFormation::Designer": {
+      "c0e9d8bc-e1fa-46c0-a83d-9230e4a319d7": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 60,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": []
+      },
+      "ecfa1f9e-d08c-4c6f-b2bd-39364f9c4c6e": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 180,
+          "y": 90
+        },
+        "z": 1,
+        "embeds": [],
+        "isrelatedto": [
+          "c0e9d8bc-e1fa-46c0-a83d-9230e4a319d7"
+        ]
+      }
+    }
+  },
+  "Parameters": {
+    "Environment": {
+      "Type": "String",
+      "Default": "dev",
+      "AllowedValues": ["dev", "test", "stage", "lt", "prod", "chris"],
+      "Description": "Supply an environment from the choices: dev, test, stage, lt, or prod. The default is dev."
+    }
+  },
+  
+  
+  "Resources": {
+
+    "LambdaBasicExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Effect": "Allow",
+              "Sid": ""
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "root",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:DeleteItem",
+                    "dynamodb:Query",
+                    "dynamodb:Scan"     
+                  ],
+                  "Resource": [ { "Fn::Join": ["", ["arn:aws:dynamodb:", { "Ref" : "AWS::Region" }, ":", { "Ref" : "AWS::AccountId" } ,":table/hello_log", "*"]] } ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+
+
+
+    "HelloWorld": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": { "Fn::Join": ["", [{ "Ref": "AWS::StackName" }, "-HelloWorld-", { "Ref": "Environment" } ]] },
+        "Runtime": "python2.7",
+        "Handler": "main.lambda_handler",
+        "Description": "Says a nice, welcoming message to anybody that wants one.",
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaBasicExecution",
+            "Arn"
+          ]
+        },
+        "Code": {
+          "S3Bucket": "mcbride-cloudformation-deploy-poc",
+          "S3Key": "example/helloworld.zip"
+        },
+        "MemorySize": 128
+      },
+      "DependsOn": "LambdaBasicExecution"
+    },
+
+
+    "InvokeHelloWorld": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Principal": {
+                "Service": [
+                  "apigateway.amazonaws.com"
+                ]
+              },
+              "Effect": "Allow",
+              "Sid": ""
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "InvokeHistoryLambda-InvokeLambdaPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Resource": [{ "Fn::GetAtt": ["HelloWorld", "Arn"] }],
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+
+
+
+  }
+}
