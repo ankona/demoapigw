@@ -1,0 +1,58 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "2016-05-13T21:14:51Z",
+    "title": "{{api_name}}"
+  },
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/v1/welcome": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response",
+            "schema": {
+              "$ref": "#/definitions/Empty"
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "credentials": "{{InvokeHelloWorld}}",
+          "responses": {
+            "default": {
+              "statusCode": "200"
+            }
+          },
+          "passthroughBehavior": "when_no_templates",
+          "httpMethod": "POST",
+          "requestTemplates": {
+            "application/json": "{ \"who\": \"$input.params('name')\", \"hello_log_db\": \"$stageVariables.hello_log_db\", \"log_level\": \"$stageVariables.log_level\" }"
+          },
+          "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/{{HelloWorld}}/invocations",
+          "type": "aws"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Empty": {
+      "type": "object"
+    }
+  }
+}
